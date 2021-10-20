@@ -372,7 +372,7 @@ static void print_help_message(FILE *f, gchar *name)
 	  "  -p # number of nodes in quadrature rule for phi\n"
 	  "  -r # number of nodes in quadrature rule for rho\n"
 	  "  -t # number of nodes in quadrature rule for theta\n"
-	  "  -T # test case to run\n"
+	  "  -T # test case to run [singular|moments]\n"
 	  "  -z # tetrahedron height\n") ;
     
     return ;
@@ -384,12 +384,10 @@ gint main(gint argc, gchar **argv)
   gdouble x[12], z, tol ;
   gint ngp, ngt, ngr, order, N, test, i, dmax ;
   FILE *input ;
-  /* , *output ; */
   gchar ch, *progname, *ipfile ;
   gboolean use_duffy ;
   
   input = stdin ;
-  /* output = stdout ; */
   progname = g_strdup(g_path_get_basename(argv[0])) ;
 
   use_duffy = FALSE ;
