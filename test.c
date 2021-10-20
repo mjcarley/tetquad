@@ -301,6 +301,7 @@ static gint moment_test(gdouble *xt, gint N, gint order,
   gdouble q[1024], J[1024], *qrule, err ;
   gint nq, n, m, p, i, j, nn, nqref ;
   gint rot[] = {0, 1, 2, 3, 0, 1, 2, 3} ;
+  gpointer data[4] ;
   
   fprintf(stderr, "monomial integration with rotation of tet\n") ;
   fprintf(stderr, "=========================================\n") ;
@@ -316,8 +317,10 @@ static gint moment_test(gdouble *xt, gint N, gint order,
 
   nq = (N+1)*(N+2)*(N+3)/6 ;
 
+  data[0] = &N ;
+  
   tq_quadrature_js_select(order, &qrule, &nqref) ;
-  ref_quad4(xt, qrule, nqref, volume_test_func, NULL, J, nq) ;
+  ref_quad4(xt, qrule, nqref, volume_test_func, data, J, nq) ;
   
   for ( j = 0 ; j < 4 ; j ++ ) {
     memset(q, 0, nq*sizeof(gdouble)) ;
@@ -329,7 +332,7 @@ static gint moment_test(gdouble *xt, gint N, gint order,
 		ngt,
 		&(gqr_rule_abscissa(qr,0)), 1, &(gqr_rule_weight(qr,0)), 1,
 		ngr,
-		(tq_tetquad_func_t)volume_test_func, NULL, q, nq) ;
+		(tq_tetquad_func_t)volume_test_func, data, q, nq) ;
 
     i = 0 ; err = 0.0 ;
     for ( nn = 0 ; nn <= N ; nn ++ ) {
@@ -348,6 +351,31 @@ static gint moment_test(gdouble *xt, gint N, gint order,
   }
   
   return 0 ;
+}
+
+static void print_help_message(FILE *f, gchar *name)
+
+{
+  fprintf(f,
+	  "Usage:\n"
+	  "  %s options < [input]\n\n",
+	  name) ;
+
+  fprintf(f,
+	  "Options:\n\n"
+	  "  -h print this message and exit\n"
+	  "  -D use Duffy transformation\n"
+	  "  -d # maximum recursion depth in adaptive quadrature\n"
+	  "  -e # error tolerance for adaptive quadrature\n"
+	  "  -i # input file name\n"
+	  "  -N # maximum order of monomials in test integrands\n"
+	  "  -p # number of nodes in quadrature rule for phi\n"
+	  "  -r # number of nodes in quadrature rule for rho\n"
+	  "  -t # number of nodes in quadrature rule for theta\n"
+	  "  -T # test case to run\n"
+	  "  -z # tetrahedron height\n") ;
+    
+    return ;
 }
 
 gint main(gint argc, gchar **argv)
@@ -374,9 +402,10 @@ gint main(gint argc, gchar **argv)
   ipfile = NULL ;
   
   test = -1 ;
-  while ( (ch = getopt(argc, argv, "Dd:e:i:N:p:r:T:t:z:")) != EOF ) {
+  while ( (ch = getopt(argc, argv, "hDd:e:i:N:p:r:T:t:z:")) != EOF ) {
     switch ( ch ) {
     default: g_assert_not_reached() ; break ;
+    case 'h': print_help_message(stderr, progname) ; return 0 ; break ;
     case 'D': use_duffy = TRUE ; break ;
     case 'd': dmax = atoi(optarg) ; break ;
     case 'e': tol = atof(optarg) ; break ;
