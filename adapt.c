@@ -52,6 +52,7 @@
 #define TQ_ADATA_NR    14
 #define TQ_ADATA_QFUNC 15
 #define TQ_ADATA_QDATA 16
+#define TQ_ADATA_DEPTH 17
 
 static void adaptive_quad_eval(gdouble *x1, gdouble *x2,
 			       gdouble *x3, gdouble *x4,
@@ -95,6 +96,9 @@ static void adaptive_quad_recursion(gdouble *x1, gdouble *x2,
   gdouble x23[3], x34[3], x42[3] ;
   gint off0, off1, i ;
   gboolean recurse ;
+  gint *depth = adata[TQ_ADATA_DEPTH] ;
+
+  *depth = MAX(*depth, d) ;
   
   if ( d == dmax ) return ;
   /*split the face and calculate the integral on the resulting tetrahedra*/
@@ -153,7 +157,7 @@ gint tq_tet_quad_adaptive(gdouble *x1, gdouble *x2, gdouble *x3, gdouble *x4,
 
 {
   gpointer adata[TQ_ADATA_SIZE] ;
-  gint i ;
+  gint i, depth ;
   
   adata[TQ_ADATA_QTH  ] = qth ;
   adata[TQ_ADATA_QTSTR] = &qtstr ;
@@ -172,14 +176,16 @@ gint tq_tet_quad_adaptive(gdouble *x1, gdouble *x2, gdouble *x3, gdouble *x4,
   adata[TQ_ADATA_NR  ] = &nr ;
   adata[TQ_ADATA_QFUNC] = qfunc ;
   adata[TQ_ADATA_QDATA] = qdata ;
+  adata[TQ_ADATA_DEPTH] = &depth ;
   
   memset(work, 0, 4*nq*dmax*sizeof(gdouble)) ;
 
+  depth = 0 ;
   adaptive_quad_eval(x1, x2, x3, x4, adata, work, nq) ;
 
   adaptive_quad_recursion(x1, x2, x3, x4, adata, work, nq, 0, 1, dmax, tol) ;
   
   for ( i = 0 ; i < nq ; i ++ ) q[i] += work[i] ;
   
-  return 0 ;
+  return depth ;
 }

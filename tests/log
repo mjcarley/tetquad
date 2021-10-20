@@ -1,0 +1,7 @@
+check against analytical integration
+====================================
+N     = 3
+gamma = -1
+z     = 0.01
+errors: -4.40864 -9.71653 -10.8074 -4.98636
+recursion depth: 3

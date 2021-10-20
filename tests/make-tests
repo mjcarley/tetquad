@@ -1,0 +1,22 @@
+#!/bin/bash
+
+for z in 1 0.5 0.2 0.1 0.05 ; do
+    outputb=basic-error-${z}.dat
+    outputa=adaptive-error-${z}.dat
+    outputd=duffy-error-${z}.dat
+
+    rm -f ${outputa} ${outputb} ${outputd}
+    for ngp in 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ; do
+	../tqtest -p ${ngp} -r ${ngp} -t ${ngp} -T singular -N 3 \
+		  -d 8 -e 1e-12 -i base-test-1.dat -z ${z} > errors.dat 2> log
+	((np = ${ngp}*${ngp}*${ngp}))
+	lnp=`echo l\(${np}\)/l\(10\) | bc -l`
+	errb=`grep errors log | cut -d " " -f 2`
+	erra=`grep errors log | cut -d " " -f 3`
+	errd=`grep errors log | cut -d " " -f 4`
+	depth=`grep depth log | cut -d " " -f 3`
+	echo ${lnp} ${erra} ${depth} >> ${outputa}
+	echo ${lnp} ${errb} >> ${outputb}
+	echo ${lnp} ${errd} >> ${outputd}
+    done
+done

@@ -565,7 +565,6 @@ static gint subtet_quad_th(gdouble *x, gdouble *xs,
 	yg[1] = r*sg[1] + xs[1] ; 
 	yg[2] = r*sg[2] + xs[2] ; 
 	wt = r*r*Sph*wth[i*wtstr]*wph[j*wpstr]*wr[k*wrstr]*dph*dth*dr ;
-	/* wt = r*r*wth[i*wtstr]*wph[j*wpstr]*wr[k*wrstr]*dtp*dth*dr ; */
 	qfunc(yg, sg, r, wt, q, nq, qdata) ;
       }
     }    
@@ -1172,9 +1171,20 @@ gint tq_tet_quad(gdouble *x1, gdouble *x2, gdouble *x3, gdouble *x4,
  * integrate function qfunc over tetrahedron x1,2,3,4 with x1 taken as
  * origin ("singular point")
  *
- * (qph,wph), etc are Gauss-Legendre quadrature rules
+ * Inputs:
+ * x1, x2, x3, x4: nodes of tetrahedron;
+ * qph:     Gauss-Legendre nodes for integration in \phi;
+ * qpstr:   stride between entries in qph;
+ * wph:     Gauss-Legendre weights for integration in \phi;
+ * wpstr:   stride between entries in wph;
+ * nph:     number of nodes in quadrature rule for \phi;
+ * qth, qtstr, wth, wtstr, nth: quadrature rule for \theta;
+ * qr, qrstr, wr, wrstr, nr: quadrature rule for \rho;
+ * func: integrand function;
+ * qdata: user data for func;
+ * q: integral array to be incremented with integral(s) over tetrahedron;
+ * nq: number of integrals to be evaluated on tetrahedron
  *
- * integrals are added to array q
  */
   
 {
