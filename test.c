@@ -358,7 +358,7 @@ static void print_help_message(FILE *f, gchar *name)
 {
   fprintf(f,
 	  "Usage:\n"
-	  "  %s options < [input]\n\n",
+	  "  %s [options] -i [input]\n\n",
 	  name) ;
 
   fprintf(f,
