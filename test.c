@@ -31,6 +31,7 @@
 
 gchar *test_names[] = {"singular",
 		       "moments",
+		       "gamma",
 		       ""} ;
 
 gint tq_quadrature_js_select(gint p, gdouble **q, gint *n) ;
@@ -219,6 +220,7 @@ static gint analytical_test(gdouble *xt, gint N, gdouble z, gint gm,
 	      ngt,
 	      &(gqr_rule_abscissa(qr,0)), 1, &(gqr_rule_weight(qr,0)), 1,
 	      ngr,
+	      0.0,
 	      func, data, q, nq) ;
 
   memset(qd, 0, nq*sizeof(gdouble)) ;
@@ -244,6 +246,7 @@ static gint analytical_test(gdouble *xt, gint N, gdouble z, gint gm,
 			   &(gqr_rule_abscissa(qr,0)), 1,
 			   &(gqr_rule_weight(qr,0)), 1,
 			   ngr,
+			   0.0,
 			   func, data,
 			   tol, dmax, qa, nq, work) ;
 
@@ -284,10 +287,190 @@ static gint analytical_test(gdouble *xt, gint N, gdouble z, gint gm,
     }
   }
 
-  /* for ( i = 0 ; i < 4 ; i ++ ) err[i] /= J[0] ; */
+  for ( i = 0 ; i < 4 ; i ++ ) err[i] /= J[0] ;
   
-  fprintf(stderr, "errors: %lg %lg %lg %lg\n",
+  fprintf(stderr, "log10(errors): "
+	  "basic    adapt    Duffy    Gauss\n") ;
+  fprintf(stderr, "               %lg %lg %lg %lg\n",
 	  log10(err[0]), log10(err[1]), log10(err[2]), log10(err[3])) ;
+  fprintf(stderr, "recursion depth: %d\n", d) ;
+  
+  return 0 ;
+}
+
+static gint gamma_test_func(gdouble *y, gdouble *s, gdouble R, gdouble wt,
+			    gdouble *q, gint nq, gpointer *data)
+
+{
+  gint N = *((gint *)data[0]) ;
+  gdouble al = *((gdouble *)data[1]) ;
+  gint i, n, m, p, nn ;
+  
+  wt /= pow(R,al) ;
+  i = 0 ;
+  for ( nn = 0 ; nn <= N ; nn ++ ) {
+    for ( n = 0 ; n <= nn ; n ++ ) {
+      for ( m = 0 ; m <= nn - n ; m ++ ) {
+	p = nn - m - n ;
+	
+	q[i] += pow(y[0], n)*pow(y[1], m)*pow(y[2], p)*wt ;
+	i ++ ;
+      }
+    }
+  }
+  
+  return 0 ;
+}
+
+static gint gamma_test_func_d(gdouble *y, gdouble *x, gdouble wt, gdouble *q,
+			       gint nq, gpointer data[])
+
+{
+  gint N, nn, n, m, p, i ;
+  gdouble al ;
+  
+  N = *((gint *)data[0]) ;
+  al = *((gdouble *)data[1]) ;
+
+  i = 0 ;
+  for ( nn = 0 ; nn <= N ; nn ++ ) {
+    for ( n = 0 ; n <= nn ; n ++ ) {
+      for ( m = 0 ; m <= nn - n ; m ++ ) {
+	p = nn - m - n ;
+
+	q[i] += wt*pow(y[0], n)*pow(y[1], m)*pow(y[2], p) ;
+
+	i ++ ;
+	if ( i == nq ) return 0 ;
+      }
+    }
+  }
+
+  return 0 ;
+}
+
+static gint gamma_test(gdouble *xt, gint N, gdouble z,
+		       gdouble al, gdouble gm, gdouble bt,
+		       gint ngp, gint ngr, gint ngt, gint dmax,
+		       gdouble tol)
+
+{
+  gqr_rule_t *qp, *qt, *qr, *qj ;
+  gqr_rule_t *qdp, *qdt, *qdr ;
+  gqr_parameter_t pm ;
+  gdouble q[1024], qa[1024], qd[1024], qq[1024], I[1024], J[1024], err[4] ;
+  gdouble *work, *qrule, *qref ;
+  gpointer data[4] ;
+  gint nq, idx[3], n, m, p, off, i, nn, sign, d, order, nqref, Nc ;
+  gint ngpd, ngrd, ngtd ;
+  tq_tetquad_func_t func = (tq_tetquad_func_t)gamma_test_func ;
+  duffy_func_t duffy_func = (duffy_func_t)gamma_test_func_d ;
+    
+  fprintf(stderr, "check for fractional power\n") ;
+  fprintf(stderr, "==========================\n") ;
+  fprintf(stderr, "N     = %d\n", N) ;
+  fprintf(stderr, "alpha = %lg\n", al) ;
+  fprintf(stderr, "gamma = %lg\n", gm) ;
+  fprintf(stderr, "z     = %lg\n", z) ;
+
+  Nc = MAX(N, 3) ;
+  
+  xt[3*0+2] = z ; 
+
+  ngrd = ngpd = ngtd = 48 ;
+  
+  qp = gqr_rule_alloc(ngp) ;
+  qr = gqr_rule_alloc(ngr) ;
+  qt = gqr_rule_alloc(ngt) ;
+  qj = gqr_rule_alloc(ngr) ;
+
+  qdp = gqr_rule_alloc(ngpd) ;
+  qdr = gqr_rule_alloc(ngrd) ;
+  qdt = gqr_rule_alloc(ngtd) ;
+  
+  gqr_rule_select(qp, GQR_GAUSS_LEGENDRE, ngp, NULL) ;
+  gqr_rule_select(qr, GQR_GAUSS_LEGENDRE, ngr, NULL) ;
+  gqr_rule_select(qt, GQR_GAUSS_LEGENDRE, ngt, NULL) ;
+
+  gqr_rule_select(qdp, GQR_GAUSS_LEGENDRE, ngpd, NULL) ;
+  gqr_rule_select(qdr, GQR_GAUSS_LEGENDRE, ngrd, NULL) ;
+  gqr_rule_select(qdt, GQR_GAUSS_LEGENDRE, ngtd, NULL) ;
+  
+  gqr_parameter_clear(&pm) ;
+  gqr_parameter_set_double(&pm, gm) ;
+  gqr_parameter_set_double(&pm, 0.0) ;
+  
+  gqr_rule_select(qj, GQR_GAUSS_JACOBI, ngr, &pm) ;
+
+  /* return 0 ; */
+  
+  data[0] = &Nc ; data[1] = &al ; nq = (Nc+1)*(Nc+2)*(Nc+3)/6 ;
+  work = (gdouble *)g_malloc(4*nq*(dmax+1)*sizeof(gdouble)) ;
+
+  memset(q, 0, nq*sizeof(gdouble)) ;
+  tq_tet_quad(&(xt[3*0]), &(xt[3*1]), &(xt[3*2]), &(xt[3*3]),
+	      &(gqr_rule_abscissa(qp,0)), 1, &(gqr_rule_weight(qp,0)), 1,
+	      ngp,
+	      &(gqr_rule_abscissa(qt,0)), 1, &(gqr_rule_weight(qt,0)), 1,
+	      ngt,
+	      &(gqr_rule_abscissa(qj,0)), 1, &(gqr_rule_weight(qj,0)), 1,
+	      ngr,
+	      gm,
+	      func, data, q, nq) ;
+  
+  memset(qd, 0, nq*sizeof(gdouble)) ;
+  duffy_tet_quad(&(xt[3*0]), &(xt[3*1]), &(xt[3*2]), &(xt[3*3]),
+		 al, bt, 
+		 &(gqr_rule_abscissa(qdp,0)), 1, &(gqr_rule_weight(qdp,0)), 1,
+		 ngpd,
+		 &(gqr_rule_abscissa(qdt,0)), 1, &(gqr_rule_weight(qdt,0)), 1,
+		 ngtd,
+		 &(gqr_rule_abscissa(qdr,0)), 1, &(gqr_rule_weight(qdr,0)), 1,
+		 ngrd,
+		 duffy_func, data, qd, nq) ;
+
+  memset(qa, 0, nq*sizeof(gdouble)) ;
+  d = tq_tet_quad_adaptive(&(xt[3*0]), &(xt[3*1]), &(xt[3*2]), &(xt[3*3]),
+			   &(gqr_rule_abscissa(qp,0)), 1,
+			   &(gqr_rule_weight(qp,0)), 1,
+			   ngp,
+			   &(gqr_rule_abscissa(qt,0)), 1,
+			   &(gqr_rule_weight(qt,0)), 1,
+			   ngt,
+			   &(gqr_rule_abscissa(qj,0)), 1,
+			   &(gqr_rule_weight(qj,0)), 1,
+			   ngr,
+			   gm,
+			   func, data,
+			   tol, dmax, qa, nq, work) ;
+
+
+  qref = qd ;
+  err[0] = err[1] = err[2] = err[3] = 0.0 ;
+  off = (Nc+1)*(Nc+2)/2 + 128 ; i = 0 ;
+  for ( nn = 0 ; nn <= N ; nn ++ ) {
+    for ( n = 0 ; n <= nn ; n ++ ) {
+      for ( m = 0 ; m <= nn - n ; m ++ ) {
+	p = nn - m - n ;
+
+	fprintf(stdout, "%d %d %d %d %lg (%lg, %lg)\n",
+		i, n, m, p, qref[i],
+		fabs(qref[i] - q[i]), fabs(qref[i] - qa[i])) ;
+	err[0] = MAX(err[0], fabs(qref[i]-q [i])) ;
+	err[1] = MAX(err[1], fabs(qref[i]-qa[i])) ;
+
+	i ++ ;
+      }
+    }
+  }
+
+  err[0] /= fabs(qref[0]) ;
+  err[1] /= fabs(qref[0]) ;
+  
+  fprintf(stderr, "log10(errors): "
+	  "basic    adapt\n") ;
+  fprintf(stderr, "               %lg %lg\n",
+	  log10(err[0]), log10(err[1])) ;
   fprintf(stderr, "recursion depth: %d\n", d) ;
   
   return 0 ;
@@ -332,6 +515,7 @@ static gint moment_test(gdouble *xt, gint N, gint order,
 		ngt,
 		&(gqr_rule_abscissa(qr,0)), 1, &(gqr_rule_weight(qr,0)), 1,
 		ngr,
+		0.0,
 		(tq_tetquad_func_t)volume_test_func, data, q, nq) ;
 
     i = 0 ; err = 0.0 ;
@@ -381,7 +565,7 @@ static void print_help_message(FILE *f, gchar *name)
 gint main(gint argc, gchar **argv)
 
 {
-  gdouble x[12], z, tol ;
+  gdouble x[12], z, tol, al, gm, bt ;
   gint ngp, ngt, ngr, order, N, test, i, dmax ;
   FILE *input ;
   gchar ch, *progname, *ipfile ;
@@ -393,20 +577,23 @@ gint main(gint argc, gchar **argv)
   use_duffy = FALSE ;
   z = 1.0 ; N = 4 ;
 
-  dmax = 4 ; tol = 1e-6 ;
+  dmax = 4 ; tol = 1e-6 ; al = 1.0 ; gm = 0.0 ; bt = 1.0 ;
   
   ngp = 4 ; ngr = 4 ; ngt = 4 ;
   order = 10 ;
   ipfile = NULL ;
   
   test = -1 ;
-  while ( (ch = getopt(argc, argv, "hDd:e:i:N:p:r:T:t:z:")) != EOF ) {
+  while ( (ch = getopt(argc, argv, "ha:b:Dd:e:g:i:N:p:r:T:t:z:")) != EOF ) {
     switch ( ch ) {
     default: g_assert_not_reached() ; break ;
     case 'h': print_help_message(stderr, progname) ; return 0 ; break ;
+    case 'a': al = atof(optarg) ; break ;
+    case 'b': bt = atof(optarg) ; break ;
     case 'D': use_duffy = TRUE ; break ;
     case 'd': dmax = atoi(optarg) ; break ;
     case 'e': tol = atof(optarg) ; break ;
+    case 'g': gm = atof(optarg) ; break ;
     case 'i': ipfile = g_strdup(optarg) ; break ;
     case 'N': N = atoi(optarg) ; break ;
     case 'p': ngp = atoi(optarg) ; break ;
@@ -453,5 +640,11 @@ gint main(gint argc, gchar **argv)
     return 0 ;
   }
 
+  if ( test == 2 ) {
+    gamma_test(x, N, z, al, gm, bt, ngp, ngr, ngt, dmax, tol) ;
+
+    return 0 ;
+  }
+  
   return 0 ;
 }

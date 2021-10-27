@@ -508,6 +508,7 @@ static gint subtet_quad_th(gdouble *x, gdouble *xs,
 			   gdouble *qr, gint qrstr,
 			   gdouble *wr, gint wrstr,
 			   gint nr,
+			   gdouble gm,
 			   tq_tetquad_func_t qfunc, gpointer qdata,
 			   gdouble *q, gint nq, gdouble *A)
 
@@ -564,7 +565,10 @@ static gint subtet_quad_th(gdouble *x, gdouble *xs,
 	yg[0] = r*sg[0] + xs[0] ; 
 	yg[1] = r*sg[1] + xs[1] ; 
 	yg[2] = r*sg[2] + xs[2] ; 
-	wt = r*r*Sph*wth[i*wtstr]*wph[j*wpstr]*wr[k*wrstr]*dph*dth*dr ;
+	/* wt = r*r*Sph*wth[i*wtstr]*wph[j*wpstr]*wr[k*wrstr]*dph*dth*dr ; */
+	wt = Sph*wth[i*wtstr]*wph[j*wpstr]*wr[k*wrstr]*dph*dth ;
+	wt *= pow(rb, gm+1)*pow(r, 2.0-gm) ;
+	/* wt *= pow(rb, 1)*pow(r, 2.0) ; */
 	qfunc(yg, sg, r, wt, q, nq, qdata) ;
       }
     }    
@@ -872,12 +876,14 @@ static gint tet_quad_origin_th(gdouble *x, gdouble *xs,
 			       gint wtstr, gint nth,
 			       gdouble *qr, gint qrstr, gdouble *wr,
 			       gint wrstr, gint nr,
+			       gdouble gm,
 			       tq_tetquad_func_t qfunc, gpointer qdata,
 			       gdouble *q, gint nq)
 
 {
   gint i, perm[3], bounds[8] ;
   gdouble th[3], xr[9], thlim[4], A[9] ;
+  /* gdouble gm = 0.0 ; */
   
   tq_transform_matrix(x, A) ;
   
@@ -931,27 +937,9 @@ static gint tet_quad_origin_th(gdouble *x, gdouble *xs,
     bounds[4] = perm[1] ; bounds[5] = perm[2] ; 
     bounds[6] = perm[0] ; bounds[7] = perm[2] ; 
   }
-
-  /* thlim[0] = 0 ; */
-  /* thlim[1] = MAX(th[0], MAX(th[1], th[2])) ; */
-  /* thlim[2] = 0 ; */
-  /* thlim[3] = 0 ; */
-  /* bounds[0] = perm[0] ; bounds[1] = perm[1] ;  */
-  /* bounds[2] = perm[0] ; bounds[3] = perm[2] ;  */
-  /* bounds[4] = perm[1] ; bounds[5] = perm[2] ;  */
-  /* bounds[6] = perm[0] ; bounds[7] = perm[2] ;  */
-  /* bounds[0] = perm[0] ; bounds[1] = perm[1] ;  */
-  /* bounds[2] = perm[0] ; bounds[3] = perm[2] ;  */
-  /* bounds[4] = perm[0] ; bounds[5] = perm[1] ;  */
-  /* bounds[6] = perm[1] ; bounds[7] = perm[2] ;  */
-  
-  /* fprintf(stderr, "limits: (%lg, %lg, %lg) (%lg, %lg, %lg)\n", */
-  /* 	  thlim[0], thlim[1], thlim[1]-thlim[0], */
-  /* 	  thlim[2], thlim[3], thlim[3]-thlim[2]) ; */
-  
   
 #ifdef HAVE_AVX_INSTRUCTIONS
-  
+  g_assert_not_reached() ; /*needs gamma support added*/
   i = subtet_quad_th_avx(xr, xs, thlim[0], thlim[1],
 			 bounds[0], bounds[1], bounds[2], bounds[3],
 			 qph, qpstr, wph, wpstr, nph,
@@ -975,6 +963,7 @@ static gint tet_quad_origin_th(gdouble *x, gdouble *xs,
   		     qph, qpstr, wph, wpstr, nph,
   		     qth, qtstr, wth, wtstr, nth,
   		     qr,  qrstr, wr,  wrstr, nr,
+		     gm,
   		     qfunc, qdata,
   		     q, nq, A) ;
   if ( i != 0 ) return 1 ;
@@ -984,6 +973,7 @@ static gint tet_quad_origin_th(gdouble *x, gdouble *xs,
   		     qph, qpstr, wph, wpstr, nph,
   		     qth, qtstr, wth, wtstr, nth,
   		     qr,  qrstr, wr,  wrstr, nr,
+		     gm,
   		     qfunc, qdata,
   		     q, nq, A) ;
   if ( i != 0 ) return 2 ;
@@ -1164,6 +1154,7 @@ gint tq_tet_quad(gdouble *x1, gdouble *x2, gdouble *x3, gdouble *x4,
 		 gint nth,
 		 gdouble *qr, gint qrstr, gdouble *wr, gint wrstr,
 		 gint nr,
+		 gdouble gm,
 		 tq_tetquad_func_t qfunc, gpointer qdata,		     
 		 gdouble *q, gint nq)
 
@@ -1179,7 +1170,9 @@ gint tq_tet_quad(gdouble *x1, gdouble *x2, gdouble *x3, gdouble *x4,
  * wpstr:   stride between entries in wph;
  * nph:     number of nodes in quadrature rule for \phi;
  * qth, qtstr, wth, wtstr, nth: quadrature rule for \theta;
- * qr, qrstr, wr, wrstr, nr: quadrature rule for \rho;
+ * qr, qrstr, wr, wrstr, nr: quadrature rule for \rho, with endpoint 
+ *          singularity (1+t)^\gamma
+ * gm:      fractional part of singularity (\gamma);
  * func: integrand function;
  * qdata: user data for func;
  * q: integral array to be incremented with integral(s) over tetrahedron;
@@ -1199,6 +1192,7 @@ gint tq_tet_quad(gdouble *x1, gdouble *x2, gdouble *x3, gdouble *x4,
 			 qph, qpstr, wph, wpstr, nph,
 			 qth, qtstr, wth, wtstr, nth,
 			 qr , qtstr, wr , wtstr, nr ,
+			 gm,
 			 qfunc, qdata, q, nq) ;
 
   if ( i != 0 ) {

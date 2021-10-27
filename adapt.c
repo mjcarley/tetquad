@@ -53,6 +53,7 @@
 #define TQ_ADATA_QFUNC 15
 #define TQ_ADATA_QDATA 16
 #define TQ_ADATA_DEPTH 17
+#define TQ_ADATA_GAMMA 18
 
 static void adaptive_quad_eval(gdouble *x1, gdouble *x2,
 			       gdouble *x3, gdouble *x4,
@@ -76,11 +77,13 @@ static void adaptive_quad_eval(gdouble *x1, gdouble *x2,
   gint nr = *((gint *)adata[TQ_ADATA_NR]) ; 
   tq_tetquad_func_t qfunc = adata[TQ_ADATA_QFUNC] ; 
   gpointer qdata = adata[TQ_ADATA_QDATA] ; 
+  gdouble gm =	*((gdouble *)adata[TQ_ADATA_GAMMA]) ; 
 
   tq_tet_quad(x1, x2, x3, x4,
 	      qph, qpstr, wph, wpstr, nph,
 	      qth, qtstr, wth, wtstr, nth,
 	      qr , qrstr, wr , wrstr, nr ,
+	      gm,
 	      qfunc, qdata, work, nq) ;
   
   return ;
@@ -151,6 +154,7 @@ gint tq_tet_quad_adaptive(gdouble *x1, gdouble *x2, gdouble *x3, gdouble *x4,
 			  gint nth,
 			  gdouble *qr, gint qrstr, gdouble *wr, gint wrstr,
 			  gint nr,
+			  gdouble gm,
 			  tq_tetquad_func_t qfunc, gpointer qdata,
 			  gdouble tol, gint dmax,
 			  gdouble *q, gint nq, gdouble *work)
@@ -177,6 +181,7 @@ gint tq_tet_quad_adaptive(gdouble *x1, gdouble *x2, gdouble *x3, gdouble *x4,
   adata[TQ_ADATA_QFUNC] = qfunc ;
   adata[TQ_ADATA_QDATA] = qdata ;
   adata[TQ_ADATA_DEPTH] = &depth ;
+  adata[TQ_ADATA_GAMMA] = &gm ;
   
   memset(work, 0, 4*nq*dmax*sizeof(gdouble)) ;
 

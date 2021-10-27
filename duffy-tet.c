@@ -61,45 +61,45 @@ static gint interp(gdouble *x1, gdouble *x2, gdouble *x3, gdouble *x4,
   return 0 ;
 }
 
-static gboolean point_in_tet(gdouble *x1, gdouble *x2,
-			     gdouble *x3, gdouble *x4,
-			     gdouble *p)
+/* static gboolean point_in_tet(gdouble *x1, gdouble *x2, */
+/* 			     gdouble *x3, gdouble *x4, */
+/* 			     gdouble *p) */
 
-{
-  gint i, s ;
-  gdouble min, max ;
+/* { */
+/*   gint i, s ; */
+/*   gdouble min, max ; */
 
-  /*bounding box test here to eliminate most predicate calls*/
-  for ( i = 0 ; i < 3 ; i ++ ) {
-    min = MIN(x1[i], MIN(x2[i], MIN(x3[i], x4[i]))) ;
-    max = MAX(x1[i], MAX(x2[i], MAX(x3[i], x4[i]))) ;
-    if ( p[i] < min ) return FALSE ;
-    if ( p[i] > max ) return FALSE ;
-  }
+/*   /\*bounding box test here to eliminate most predicate calls*\/ */
+/*   for ( i = 0 ; i < 3 ; i ++ ) { */
+/*     min = MIN(x1[i], MIN(x2[i], MIN(x3[i], x4[i]))) ; */
+/*     max = MAX(x1[i], MAX(x2[i], MAX(x3[i], x4[i]))) ; */
+/*     if ( p[i] < min ) return FALSE ; */
+/*     if ( p[i] > max ) return FALSE ; */
+/*   } */
   
-  /*add a circumsphere test here to speed things up a bit?*/
-  if ( (s = SIGN(orient3d(x1, x2, x3, p))) == 0 )
-    return TRUE ;  
-  if ( s != SIGN(orient3d(x1, x2, x3, x4)) )
-    return FALSE ;
+/*   /\*add a circumsphere test here to speed things up a bit?*\/ */
+/*   if ( (s = SIGN(orient3d(x1, x2, x3, p))) == 0 ) */
+/*     return TRUE ;   */
+/*   if ( s != SIGN(orient3d(x1, x2, x3, x4)) ) */
+/*     return FALSE ; */
 
-  if ( (s = SIGN(orient3d(x2, x3, x4, p))) == 0 )
-    return TRUE ;  
-  if ( s != SIGN(orient3d(x2, x3, x4, x1)) )
-    return FALSE ;
+/*   if ( (s = SIGN(orient3d(x2, x3, x4, p))) == 0 ) */
+/*     return TRUE ;   */
+/*   if ( s != SIGN(orient3d(x2, x3, x4, x1)) ) */
+/*     return FALSE ; */
 
-  if ( (s = SIGN(orient3d(x3, x4, x1, p))) == 0 )
-    return TRUE ;  
-  if ( s != SIGN(orient3d(x3, x4, x1, x2)) )
-    return FALSE ;
+/*   if ( (s = SIGN(orient3d(x3, x4, x1, p))) == 0 ) */
+/*     return TRUE ;   */
+/*   if ( s != SIGN(orient3d(x3, x4, x1, x2)) ) */
+/*     return FALSE ; */
 
-  if ( (s = SIGN(orient3d(x4, x1, x2, p))) == 0 )
-    return TRUE ;  
-  if ( s != SIGN(orient3d(x4, x1, x2, x3)) )
-    return FALSE ;
+/*   if ( (s = SIGN(orient3d(x4, x1, x2, p))) == 0 ) */
+/*     return TRUE ;   */
+/*   if ( s != SIGN(orient3d(x4, x1, x2, x3)) ) */
+/*     return FALSE ; */
   
-  return TRUE ;
-}
+/*   return TRUE ; */
+/* } */
 
 gint duffy_ref_tet_quad_plain(gdouble *x1, gdouble *x2,
 			      gdouble *x3, gdouble *x4,
@@ -169,7 +169,7 @@ gint duffy_ref_tet_quad_vector(gdouble *x1, gdouble *x2,
 
 {
   gint i, j, k ;
-  gdouble ub, du, vb, dv, wb, dw, u, v, w, y[3], r1T[3*4] ;
+  gdouble ub, du, vb, dv, wb, dw, u, v, y[3], r1T[3*4] ;
   gdouble xi, eta, zeta, l1T, J, wt ;
   gdouble bA[9], vw[3*4] ;
   gdouble d1 = 1.0, d0 = 0.0 ;
@@ -195,7 +195,7 @@ gint duffy_ref_tet_quad_vector(gdouble *x1, gdouble *x2,
     vw[1] = vw[4] = vw[7] = vw[10] = v ;
     
     for ( k = 0 ; k < nw ; k += 4 ) {
-      w = wb + dw*qw[k*wstr] ;
+      /* w = wb + dw*qw[k*wstr] ; */
 
       blaswrap_daxpy(i4, dw, &(qw[k]), i1, &(vw[2]), i3) ;
       /* vw[8] += wb ; vw[9] += wb ; vw[10] += wb ; vw[11] += wb ;  */
@@ -324,7 +324,7 @@ gint duffy_tet_quad(gdouble *x1, gdouble *x2,
   gdouble tol ;
 
   tol = 1e-12 ;
-  
+
   V = orient3d(x1, x2, x3, x4) ;
   if ( fabs(V) < tol ) return 0 ;
 
